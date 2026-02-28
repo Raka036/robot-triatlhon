@@ -1,5 +1,11 @@
 #include <Adafruit_PCF8574.h>
 #include <elapsedMillis.h>
+#include <SoftwareSerial.h>
+
+#define HCRx 16
+#define HCTx 15
+SoftwareSerial HC05(HCRx, HCTx);
+
 
 // Create PCF8574 object
 Adafruit_PCF8574 pcf;
@@ -70,6 +76,7 @@ void motorControl(int in1Value, int in2Value, int in3Value, int in4Value, int le
 
 void setup() {
   Serial.begin(9600);
+  HC05.begin(9600);
   
   // Initialize PCF8574
   if (!pcf.begin(0x20, &Wire)) {
@@ -146,36 +153,48 @@ void loop() {
   
   // BLUETOOTH mode
   if (currentMode == MODE_BLUETOOTH) {
-    BLINK_DELAY = 100;
-    // Read bluetooth command from Serial
-    if (Serial.available() > 0) {
-      btCommand = Serial.read();
-      Serial.print("BT Command: ");
-      Serial.println(btCommand);
-    }
-    
-    // Execute bluetooth command
-    switch (btCommand) {
-      case 'A': // Forward
-        motorControl(HIGH, LOW, HIGH, LOW, SPEED_NORMAL, SPEED_NORMAL);
-        break;
-      case 'B': // Backward
-        motorControl(LOW, HIGH, LOW, HIGH, SPEED_NORMAL, SPEED_NORMAL);
-        break;
-      case 'L': // Left
-        motorControl(LOW, HIGH, HIGH, LOW, SPEED_TURN, SPEED_TURN);
-        break;
-      case 'R': // Right
-        motorControl(HIGH, LOW, LOW, HIGH, SPEED_TURN, SPEED_TURN);
-        break;
-      case 'S': // Stop
-      default:
-        motorControl(LOW, LOW, LOW, LOW, 0, 0);
-        break;
-    }
-    
-    delay(10);
-    return;
+     char c;
+     String voice;
+    while (HC05.available())
+ {
+ delay (10);
+ c = HC05.read();
+ voice += c;
+ }
+ if (voice.length()>0)
+ {
+ Serial.println (voice);
+ if (voice == "forward" || voice == "forwards" ||voice == "maju" || voice == "A")
+ {
+ //Forward
+ motorControl(1,0,1,0,255,255);
+ delay (1000);
+ }
+ else if (voice == "backward" || voice == "backwards" ||voice == "mundur" || voice == "C")
+ {
+ //Backward
+ motorControl(0,1,0,1,255,255);
+ delay (1000);
+ }
+ else if (voice == "right" || voice == "kanan" || voice == "B")
+ {
+ //Turn Right
+ motorControl(1,0,0,1,255,255);
+ delay (1000);
+ }
+ else if (voice == "left" || voice == "kiri" || voice == "D")
+ {
+ //Right
+ motorControl(0,1,1,0,255,255);
+ delay (1000);
+ }
+ else
+ {
+ //Stop
+ }
+ voice = "";
+ }
+ return;
   }
   
   // WALL FOLLOW mode
